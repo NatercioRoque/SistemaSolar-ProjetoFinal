@@ -61,11 +61,16 @@ const float orbitalRadii[] = {
    55.0f   // Netuno
 };
 
-GLfloat light0_ambient [] = { 0.2 , 0.2 , 0.2 , 1.0 };
-GLfloat light0_diffuse [] = { 1.0 , 1.0 , 1.0 , 1.0 };
-GLfloat light0_specular [] = { 1.0 , 1.0 , 1.0 , 1.0 };
-GLfloat light0_position [] = { 0.0 , 0.0 , 0.0 , 1.0 };
-GLfloat spot_direction [] = { -1.0 , -1.0 , 0.0 };
+GLfloat light0_ambient[] = { 0.2 , 0.2 , 0.2 , 1.0 };
+GLfloat light0_diffuse[] = { 1.0 , 1.0 , 1.0 , 1.0 };
+GLfloat light0_specular[] = { 1.0 , 1.0 , 1.0 , 1.0 };
+GLfloat light0_position[] = { 0.0 , 0.0 , 0.0 , 1.0 };
+//GLfloat spot_direction[] = { -1.0 , -1.0 , 0.0 };
+
+GLfloat materialAmbient[]  = { 0.2, 0.2, 0.2, 1.0 };
+GLfloat materialDiffuse[]  = { 0.7, 0.7, 0.7, 1.0 }; 
+GLfloat materialSpecular[] = { 0.0, 0.0, 0.0, 1.0 }; 
+GLfloat materialShininess[] = { 1.0 }; 
 
 
 // Protótipos de funções
@@ -101,7 +106,8 @@ void addCelestialObject(float posX, float posY, float posZ,
     }
 }
 
-void iluminacao(){
+//Função para definir as propriedades luminosas dos objetos
+void lightConfig(){
 
    //Liga iluminação
    glEnable(GL_LIGHTING);
@@ -112,6 +118,16 @@ void iluminacao(){
    glLightfv ( GL_LIGHT0 , GL_DIFFUSE , light0_diffuse );
    glLightfv ( GL_LIGHT0 , GL_SPECULAR , light0_specular );
    glLightfv ( GL_LIGHT0 , GL_POSITION , light0_position );
+
+   //Define as propriedades luminosas do material
+   glMaterialfv(GL_FRONT, GL_AMBIENT, materialAmbient);
+   glMaterialfv(GL_FRONT, GL_DIFFUSE, materialDiffuse);
+   glMaterialfv(GL_FRONT, GL_SPECULAR, materialSpecular);
+   glMaterialfv(GL_FRONT, GL_SHININESS, materialShininess);
+
+   //Mescla as propriedades de luz com a coloração do material
+   glEnable(GL_COLOR_MATERIAL);
+   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
 
 }
@@ -125,7 +141,7 @@ void init(void)
 
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-   iluminacao();
+   lightConfig();
 
    // Limpar o array de objetos celestes
    objectCount = 0;
@@ -238,12 +254,17 @@ void display(void){
    // Limpa o buffer de cores e profundidade
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-   glEnable(GL_LIGHTING);
-   glEnable(GL_LIGHT0);
-   glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
-   
    // Desenha os objetos celestes
    for (int i = 0; i < objectCount; i++) {
+      
+      if(i==0){
+         GLfloat emission[] = {1.0, 1.0, 0.1, 1.0};
+         glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+      }else if(i==1){
+         GLfloat noEmission[] = {0.0, 0.0, 0.0, 1.0};
+         glMaterialfv(GL_FRONT, GL_EMISSION, noEmission);
+      }
+      
       glPushMatrix();
 
       // Posiciona o objeto
