@@ -61,6 +61,13 @@ const float orbitalRadii[] = {
    55.0f   // Netuno
 };
 
+GLfloat light0_ambient [] = { 0.2 , 0.2 , 0.2 , 1.0 };
+GLfloat light0_diffuse [] = { 1.0 , 1.0 , 1.0 , 1.0 };
+GLfloat light0_specular [] = { 1.0 , 1.0 , 1.0 , 1.0 };
+GLfloat light0_position [] = { 0.0 , 0.0 , 0.0 , 1.0 };
+GLfloat spot_direction [] = { -1.0 , -1.0 , 0.0 };
+
+
 // Protótipos de funções
 void addCelestialObject(float posX, float posY, float posZ, 
                        float velX, float velY, float velZ,
@@ -94,6 +101,22 @@ void addCelestialObject(float posX, float posY, float posZ,
     }
 }
 
+void iluminacao(){
+
+   //Liga iluminação
+   glEnable(GL_LIGHTING);
+   glEnable(GL_LIGHT0);
+
+   //Define as propriedades de reflexão e posição
+   glLightfv ( GL_LIGHT0 , GL_AMBIENT , light0_ambient );
+   glLightfv ( GL_LIGHT0 , GL_DIFFUSE , light0_diffuse );
+   glLightfv ( GL_LIGHT0 , GL_SPECULAR , light0_specular );
+   glLightfv ( GL_LIGHT0 , GL_POSITION , light0_position );
+
+
+}
+
+
 void init(void) 
 {
    glClearColor (0.0, 0.0, 0.0, 0.0);
@@ -101,6 +124,8 @@ void init(void)
    glEnable(GL_DEPTH_TEST);
 
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+   iluminacao();
 
    // Limpar o array de objetos celestes
    objectCount = 0;
@@ -212,6 +237,10 @@ void init(void)
 void display(void){
    // Limpa o buffer de cores e profundidade
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+   glEnable(GL_LIGHTING);
+   glEnable(GL_LIGHT0);
+   glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
    
    // Desenha os objetos celestes
    for (int i = 0; i < objectCount; i++) {
