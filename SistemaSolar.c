@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 #ifdef GL_VERSION_1_1
 static GLuint texName;
@@ -24,10 +25,18 @@ int windowHeight = 600;
 float cameraX = 0.0f;
 float cameraY = 0.0f;
 float cameraZ = 50.0f;
+float cameraMove = 0.5;
 
 // Variáveis de rotação da câmera
 float cameraYaw = 180.0f;   // Rotação em torno do eixo Y (esquerda-direita)
 float cameraPitch = 0.0f;   // Rotação em torno do eixo X (cima-baixo)
+
+//Variáveis para movimentação da câmera
+float fwdX, fwdY, fwdZ; 
+float rightX, rightY, rightZ;        
+float upX, upY, upZ;      
+
+const float pi = 3.14159265358979323846;
 
 // Definição do tipo de objeto celeste
 typedef struct {
@@ -129,6 +138,48 @@ void lightConfig(){
    glEnable(GL_COLOR_MATERIAL);
    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
+
+}
+
+void cameraAdjust(){
+
+   //Cálculo dos vetores da câmera forward, right e up
+   fwdX = -sin(cameraYaw * pi / 180.0) * cos(cameraPitch * pi / 180.0);           
+   fwdY = sin(cameraPitch * pi / 180.0);
+   fwdZ = cos(cameraYaw * pi / 180.0) * cos(cameraPitch * pi / 180.0);
+
+   rightX = -cos(cameraYaw * pi / 180.0);
+   rightY = 0.0;
+   rightZ = -sin(cameraYaw * pi / 180.0);
+   //Up é calculado através do produto vetorial entre forward e right
+   upX = fwdY * rightZ - fwdZ * rightY;
+   upY = fwdZ * rightX - fwdX * rightZ;
+   upZ = fwdX * rightY - fwdY * rightX;
+
+   //Normalização dos vetores, para que seus módulos tenhar valor 1
+   float lenFwd = sqrt(fwdX*fwdX + fwdY*fwdY + fwdZ*fwdZ);
+   fwdX == fwdX/lenFwd;
+   fwdY == fwdY/lenFwd;
+   fwdZ == fwdZ/lenFwd;
+    
+   float lenRight = sqrt(rightX*rightX + rightY*rightY + rightZ*rightZ);
+   rightX == rightX/lenRight;
+   rightY == rightY/lenRight;
+   rightZ == rightZ/lenRight;
+   
+   float lenUp = sqrt(upX*upX + upY*upY + upZ*upZ);
+   upX == upX/lenUp;
+   upY == upY/lenUp;
+   upZ == upZ/lenUp;
+
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+
+   glRotatef(cameraPitch, 1.0, 0.0, 0.0);
+   glRotatef(cameraYaw, 0.0, 1.0, 0.0);
+   glTranslatef(cameraX, cameraY, cameraZ);
+
+   glutPostRedisplay();
 
 }
 
@@ -307,6 +358,46 @@ void reshape(int w, int h){
 
 void keyboard(unsigned char key, int x, int y){
    switch (key) {
+      case 'w': //Camera se move para frente
+         cameraX += fwdX * cameraMove;
+         cameraY += fwdY * cameraMove;
+         cameraZ += fwdZ * cameraMove;
+         cameraAdjust();
+         break;
+      case 's': //Camera se move para trás
+         cameraX -= fwdX * cameraMove;
+         cameraY -= fwdY * cameraMove;
+         cameraZ -= fwdZ * cameraMove;
+         cameraAdjust();
+         break;
+      case 'a': //Camera se move para a esquerda
+         cameraX -= rightX * cameraMove;
+         cameraY -= rightY * cameraMove;
+         cameraZ -= rightZ * cameraMove;
+         cameraAdjust();
+         break;
+      case 'd': //Camera se move para a direita
+         cameraX += rightX * cameraMove;
+         cameraY += rightY * cameraMove;
+         cameraZ += rightZ * cameraMove;
+         cameraAdjust();
+         break;
+      case '4': //Camera gira para a esquerda
+         cameraYaw -= 5.0;
+         cameraAdjust();
+         break;
+      case '6': //Camera gira para a direita
+         cameraYaw += 5.0;
+         cameraAdjust();
+         break;
+      case '5': //Camera gira para baixo
+         cameraPitch += 5.0;
+         cameraAdjust();
+         break;
+      case '8': //Camera gira para cima
+         cameraPitch -= 5.0;
+         cameraAdjust();
+         break;
       case 27:
          exit(0);
          break;
