@@ -1,7 +1,18 @@
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <stdbool.h>
+
+// Define M_PI se não estiver definido
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+/* Criar textura de tabuleiro de xadrez */
+#define checkImageWidth 64
+#define checkImageHeight 64
+static GLubyte checkImage[checkImageHeight][checkImageWidth][4];
 
 #ifdef GL_VERSION_1_1
 static GLuint texName;
@@ -48,6 +59,10 @@ typedef struct {
 CelestialObject objects[MAX_OBJECTS];
 int objectCount = 0;
 
+// Variáveis de física
+float timeStep = 0.1f;     // Fator de escala de tempo para ajustar velocidade da simulação
+float rotationAngles[MAX_OBJECTS]; // Ângulos de rotação para cada planeta
+
 // Raios orbitais para cada planeta (distâncias do Sol)
 const float orbitalRadii[] = {
    0.0f,   // Sol (no centro)
@@ -59,9 +74,23 @@ const float orbitalRadii[] = {
    35.0f,  // Saturno
    45.0f,  // Urano
    55.0f   // Netuno
+};   
+
+// Velocidades orbitais de cada planeta (em graus por segundo)
+float orbitalSpeeds[] = {
+    0.0f,   // Sol (não orbita)
+    4.1f,   // Mercúrio (mais rápido)
+    3.0f,   // Vênus
+    2.5f,   // Terra
+    2.0f,   // Marte
+    1.0f,   // Júpiter
+    0.7f,   // Saturno
+    0.5f,   // Urano
+    0.4f    // Netuno (mais lento)
 };
 
 // Protótipos de funções
+void updatePhysics();
 void addCelestialObject(float posX, float posY, float posZ, 
                        float velX, float velY, float velZ,
                        float mass, float radius, GLuint texture,
@@ -94,17 +123,45 @@ void addCelestialObject(float posX, float posY, float posZ,
     }
 }
 
-void init(void) 
-{
-   glClearColor (0.0, 0.0, 0.0, 0.0);
-   glShadeModel (GL_SMOOTH);
+// Atualizar a física de todos os objetos
+void updatePhysics() {
+   // Atualizar a posição de cada planeta (exceto o Sol)
+   for (int i = 1; i < objectCount; i++) {
+      // Incrementar o ângulo de rotação específico deste planeta
+      rotationAngles[i] += orbitalSpeeds[i] * timeStep * 0.2f;
+      if (rotationAngles[i] > 360.0f) {
+         rotationAngles[i] -= 360.0f;
+      }
+      
+      // Atualizar a posição do planeta para orbitar ao redor do Sol
+      objects[i].posX = orbitalRadii[i] * cos(rotationAngles[i] * M_PI / 180.0f);
+      objects[i].posZ = orbitalRadii[i] * sin(rotationAngles[i] * M_PI / 180.0f);
+      // Manter os planetas no plano XZ
+      objects[i].posY = 0.0f;
+      
+      // Também atualizar a rotação do próprio planeta
+      objects[i].rotationAngle += objects[i].rotationSpeed * timeStep;
+      if (objects[i].rotationAngle > 360.0f) {
+         objects[i].rotationAngle -= 360.0f;
+      }
+   }
+}
+
+void init(void) {
+   glClearColor(0.0, 0.0, 0.0, 0.0);
+   glShadeModel(GL_SMOOTH); // Sombreamento suave
    glEnable(GL_DEPTH_TEST);
-
+   
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
+   
    // Limpar o array de objetos celestes
    objectCount = 0;
-
+   
+   // Inicializar ângulos de rotação
+   for (int i = 0; i < MAX_OBJECTS; i++) {
+      rotationAngles[i] = 0.0f;
+   }
+   
    // === Criar objetos celestes (Sol e planetas) ===
    
    // Sol (fixo no centro)
@@ -118,6 +175,9 @@ void init(void)
       true,                 // fixo, não se move
       "Sol"                // nome do objeto
    );
+   // Ajustar rotação do Sol
+   objects[objectCount-1].rotationSpeed = 0.5f;  // Rotação mais lenta para o Sol
+   
    // Mercúrio
    addCelestialObject(
       orbitalRadii[1], 0.0f, 0.0f,     // posição (usar raio orbital global)
@@ -129,6 +189,8 @@ void init(void)
       true,                 // fixo inicialmente
       "Mercurio"          // nome do objeto
    );
+   objects[objectCount-1].rotationSpeed = 0.1f;  // Mercúrio é lento (58.6 dias terrestres)
+   
    // Vênus
    addCelestialObject(
       orbitalRadii[2], 0.0f, 0.0f,     // posição (usar raio orbital global)
@@ -140,6 +202,8 @@ void init(void)
       true,                 // fixo inicialmente
       "Venus"            // nome do objeto
    );
+   objects[objectCount-1].rotationSpeed = 0.05f;  // Vênus é muito lento (243 dias terrestres) e retrógrado
+   
    // Terra
    addCelestialObject(
       orbitalRadii[3], 0.0f, 0.0f,    // posição (usar raio orbital global) 
@@ -151,6 +215,8 @@ void init(void)
       true,                 // fixo inicialmente
       "Terra"            // nome do objeto
    );
+   objects[objectCount-1].rotationSpeed = 2.0f;  // Rotação da Terra (1 dia)
+   
    // Marte
    addCelestialObject(
       orbitalRadii[4], 0.0f, 0.0f,    // posição (usar raio orbital global)
@@ -162,6 +228,8 @@ void init(void)
       true,                 // fixo inicialmente
       "Marte"            // nome do objeto
    );
+   objects[objectCount-1].rotationSpeed = 1.9f;  // Marte (24.6 horas)
+   
    // Júpiter
    addCelestialObject(
       orbitalRadii[5], 0.0f, 0.0f,    // posição (usar raio orbital global)
@@ -173,6 +241,8 @@ void init(void)
       true,                 // fixo inicialmente
       "Jupiter"            // nome do objeto
    );
+   objects[objectCount-1].rotationSpeed = 5.0f;  // Júpiter é rápido (9.9 horas)
+   
    // Saturno
    addCelestialObject(
       orbitalRadii[6], 0.0f, 0.0f,    // posição (usar raio orbital global)
@@ -184,6 +254,8 @@ void init(void)
       true,                 // fixo inicialmente
       "Saturno"            // nome do objeto
    );
+   objects[objectCount-1].rotationSpeed = 4.5f;  // Saturno é rápido (10.7 horas)
+   
    // Urano
    addCelestialObject(
       orbitalRadii[7], 0.0f, 0.0f,    // posição (usar raio orbital global)
@@ -195,6 +267,8 @@ void init(void)
       true,                 // fixo inicialmente
       "Urano"            // nome do objeto
    );
+   objects[objectCount-1].rotationSpeed = -3.0f;  // Urano tem rotação retrógrada (17.2 horas)
+   
    // Netuno
    addCelestialObject(
       orbitalRadii[8], 0.0f, 0.0f,    // posição (usar raio orbital global)
@@ -206,10 +280,13 @@ void init(void)
       true,                 // fixo inicialmente
       "Netuno"            // nome do objeto
    );
-
+   objects[objectCount-1].rotationSpeed = 3.5f;  // Netuno (16.1 horas)
 }
 
 void display(void){
+   // Atualiza a física
+   updatePhysics();
+
    // Limpa o buffer de cores e profundidade
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    
@@ -236,6 +313,9 @@ void display(void){
    }
 
    glutSwapBuffers();
+
+   // Solicitar redesenho para animação
+   glutPostRedisplay();
 }
 
 void reshape(int w, int h){
