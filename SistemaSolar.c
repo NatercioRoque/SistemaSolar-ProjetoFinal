@@ -305,6 +305,9 @@ void display(void){
    // Limpa o buffer de cores e profundidade
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+   //Define a posição de onde a luz é emitida
+   glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+
    // Desenha os objetos celestes
    for (int i = 0; i < objectCount; i++) {
       
