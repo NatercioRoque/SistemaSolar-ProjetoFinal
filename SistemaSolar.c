@@ -97,7 +97,7 @@ void addCelestialObject(float posX, float posY, float posZ,
     }
 }
 
-//Função para carregar texturas para os objetos                      FAZER AJUSTE NA POSIÇÃO DA TEXTURA/CORPO CELESTE!!!!!!!!!!
+//Função para carregar texturas para os objetos
 void loadTexture ( const char * filename , GLuint * textureID) {
    int width , height , nrChannels ;
    unsigned char * data = stbi_load ( filename , & width , & height ,
@@ -139,6 +139,8 @@ void init(void)
    glEnable(GL_DEPTH_TEST);
 
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    stbi_set_flip_vertically_on_load(true);
 
    loadTexture("Texturas/sun.jpg", &sunTexName);
    loadTexture("Texturas/mercury.jpg", &mercuryTexName);
@@ -273,6 +275,7 @@ void display(void){
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, objects[i].texture);
             glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);   //Rotaciona a esfera para a exibição adequada
         } else {
             glDisable(GL_TEXTURE_2D);
         }
@@ -282,7 +285,7 @@ void display(void){
 
       // Criar uma esfera para o objeto
       GLUquadric* quadric = gluNewQuadric();
-      gluQuadricTexture(quadric, GL_TRUE);
+      gluQuadricTexture(quadric, GL_TRUE);   //Mapeia e desenha a textura
       gluQuadricNormals(quadric, GLU_SMOOTH);
 
       // Desenhar a esfera
