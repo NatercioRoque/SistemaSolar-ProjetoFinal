@@ -4,6 +4,9 @@
 #include <math.h>
 #include <stdbool.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 // Define M_PI se não estiver definido
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -123,37 +126,61 @@ void addCelestialObject(float posX, float posY, float posZ,
     }
 }
 
-// Atualizar a física de todos os objetos
-void updatePhysics() {
-   // Atualizar a posição de cada planeta (exceto o Sol)
-   for (int i = 1; i < objectCount; i++) {
-      // Incrementar o ângulo de rotação específico deste planeta
-      rotationAngles[i] += orbitalSpeeds[i] * timeStep * 0.2f;
-      if (rotationAngles[i] > 360.0f) {
-         rotationAngles[i] -= 360.0f;
+//Função para carregar texturas para os objetos
+void loadTexture ( const char * filename , GLuint * textureID) {
+   int width , height , nrChannels ;
+   unsigned char * data = stbi_load ( filename , & width , & height ,
+      & nrChannels , 0);
+   if ( data ) {
+      glGenTextures (1 , textureID );                  
+      glBindTexture ( GL_TEXTURE_2D , *textureID );
+
+      // Set texture wrapping and filtering parameters
+      glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_WRAP_S ,
+      GL_REPEAT );
+      glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_WRAP_T ,
+      GL_REPEAT );
+      glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER ,
+      GL_LINEAR_MIPMAP_LINEAR );
+      glTexParameteri ( GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER ,
+      GL_LINEAR );
+
+      // Load the texture data ( check if it 's RGB or RGBA )
+      if ( nrChannels == 3) {
+         gluBuild2DMipmaps ( GL_TEXTURE_2D , GL_RGB , width ,
+         height , GL_RGB , GL_UNSIGNED_BYTE , data );
+         } else if ( nrChannels == 4) {
+         gluBuild2DMipmaps ( GL_TEXTURE_2D , GL_RGBA , width ,
+         height , GL_RGBA , GL_UNSIGNED_BYTE , data );
       }
-      
-      // Atualizar a posição do planeta para orbitar ao redor do Sol
-      objects[i].posX = orbitalRadii[i] * cos(rotationAngles[i] * M_PI / 180.0f);
-      objects[i].posZ = orbitalRadii[i] * sin(rotationAngles[i] * M_PI / 180.0f);
-      // Manter os planetas no plano XZ
-      objects[i].posY = 0.0f;
-      
-      // Também atualizar a rotação do próprio planeta
-      objects[i].rotationAngle += objects[i].rotationSpeed * timeStep;
-      if (objects[i].rotationAngle > 360.0f) {
-         objects[i].rotationAngle -= 360.0f;
-      }
+      stbi_image_free ( data );
+   } else {
+      puts("Falied to load texture");
    }
 }
 
-void init(void) {
-   glClearColor(0.0, 0.0, 0.0, 0.0);
-   glShadeModel(GL_SMOOTH); // Sombreamento suave
+
+
+void init(void) 
+{
+   glClearColor (0.0, 0.0, 0.0, 0.0);
+   glShadeModel (GL_SMOOTH);
    glEnable(GL_DEPTH_TEST);
    
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-   
+
+    stbi_set_flip_vertically_on_load(true);
+
+   loadTexture("Texturas/sun.jpg", &sunTexName);
+   loadTexture("Texturas/mercury.jpg", &mercuryTexName);
+   loadTexture("Texturas/venus.jpg", &venusTexName);
+   loadTexture("Texturas/earth.jpg", &earthTexName);
+   loadTexture("Texturas/mars.jpg", &marsTexName);
+   loadTexture("Texturas/jupiter.jpg", &jupiterTexName);
+   loadTexture("Texturas/satrun.jpg", &saturnTexName);
+   loadTexture("Texturas/uranus.jpg", &uranusTexName);
+   loadTexture("Texturas/neptune.jpg", &neptuneTexName);
+
    // Limpar o array de objetos celestes
    objectCount = 0;
    
@@ -170,7 +197,7 @@ void init(void) {
       0.0f, 0.0f, 0.0f,     // velocidade
       1.989e30,             // massa do Sol em kg
       3.0f,                 // raio visual
-      sunTexName,           // textura
+      sunTexName,           // textura                                  
       1.0f, 1.0f, 0.0f,     // cor amarela (backup)
       true,                 // fixo, não se move
       "Sol"                // nome do objeto
@@ -297,12 +324,22 @@ void display(void){
       // Posiciona o objeto
       glTranslatef(objects[i].posX, objects[i].posY, objects[i].posZ);
 
-      // Definir cor (será usada como fator de multiplicação para a textura)
+      //Aplicação da textura para o objeto
+        if (objects[i].texture > 0) {
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, objects[i].texture);
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);   //Rotaciona a esfera para a exibição adequada
+        } else {
+            glDisable(GL_TEXTURE_2D);
+        }
+
+      //Definição de cor sólida do corpo celeste, para caso não haja textura aplicada
       glColor3f(objects[i].r, objects[i].g, objects[i].b);
 
       // Criar uma esfera para o objeto
       GLUquadric* quadric = gluNewQuadric();
-      gluQuadricTexture(quadric, GL_TRUE);
+      gluQuadricTexture(quadric, GL_TRUE);   //Mapeia e desenha a textura
       gluQuadricNormals(quadric, GLU_SMOOTH);
 
       // Desenhar a esfera
