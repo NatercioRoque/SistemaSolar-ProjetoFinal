@@ -198,6 +198,28 @@ void lightConfig(){
 
 }
 
+void updatePhysics() {
+    // Atualizar a posição de cada planeta (exceto o Sol)
+    for (int i = 1; i < objectCount; i++) {
+        // Incrementar o ângulo de rotação específico deste planeta
+        rotationAngles[i] += orbitalSpeeds[i] * timeStep * 0.2f;
+        if (rotationAngles[i] > 360.0f) {
+            rotationAngles[i] -= 360.0f;
+        }
+        
+        // Atualizar a posição do planeta para orbitar ao redor do Sol
+        objects[i].posX = orbitalRadii[i] * cos(rotationAngles[i] * M_PI / 180.0f);
+        objects[i].posZ = orbitalRadii[i] * sin(rotationAngles[i] * M_PI / 180.0f);
+        // Manter os planetas no plano XZ
+        objects[i].posY = 0.0f;
+        
+        // Também atualizar a rotação do próprio planeta
+        objects[i].rotationAngle += objects[i].rotationSpeed * timeStep;
+        if (objects[i].rotationAngle > 360.0f) {
+            objects[i].rotationAngle -= 360.0f;
+        }
+    }
+}
 
 void init(void) 
 {
