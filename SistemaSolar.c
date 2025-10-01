@@ -35,22 +35,13 @@ static GLuint neptuneTexName; // Textura para Netuno
 int windowWidth = 800;
 int windowHeight = 600;
 
-// Variáveis de posição da câmera
-float cameraX = 0.0f;
-float cameraY = 0.0f;
-float cameraZ = 50.0f;
+//Variáveis para controle da câmera
+float anguloX = 0.0f, anguloY = 0.0f; 
+float zoom = -50.0f; 
+float cameraPosX = 0.0f;
 float cameraMove = 1.5;
-
-// Variáveis de rotação da câmera
-float cameraYaw = 180.0f;   // Rotação em torno do eixo Y (esquerda-direita)
-float cameraPitch = 0.0f;   // Rotação em torno do eixo X (cima-baixo)
-
-//Variáveis para movimentação da câmera
-float fwdX, fwdY, fwdZ; 
-float rightX, rightY, rightZ;        
-float upX, upY, upZ;      
-
-const float pi = 3.14159265358979323846;
+int lastMouseX, lastMouseY; 
+int botaoEsquerdoAtivo = 0;
 
 // Definição do tipo de objeto celeste
 typedef struct {
@@ -72,7 +63,7 @@ CelestialObject objects[MAX_OBJECTS];
 int objectCount = 0;
 
 // Variáveis de física
-float timeStep = 0.1f;     // Fator de escala de tempo para ajustar velocidade da simulação
+float timeStep = 0.3f;     // Fator de escala de tempo para ajustar velocidade da simulação
 float rotationAngles[MAX_OBJECTS]; // Ângulos de rotação para cada planeta
 
 // Raios orbitais para cada planeta (distâncias do Sol)
@@ -204,48 +195,6 @@ void lightConfig(){
    glEnable(GL_COLOR_MATERIAL);
    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 
-
-}
-
-void cameraAdjust(){
-
-   //Cálculo dos vetores da câmera forward, right e up
-   fwdX = -sin(cameraYaw * pi / 180.0) * cos(cameraPitch * pi / 180.0);           
-   fwdY = sin(cameraPitch * pi / 180.0);
-   fwdZ = cos(cameraYaw * pi / 180.0) * cos(cameraPitch * pi / 180.0);
-
-   rightX = -cos(cameraYaw * pi / 180.0);
-   rightY = 0.0;
-   rightZ = -sin(cameraYaw * pi / 180.0);
-   //Up é calculado através do produto vetorial entre forward e right
-   upX = fwdY * rightZ - fwdZ * rightY;
-   upY = fwdZ * rightX - fwdX * rightZ;
-   upZ = fwdX * rightY - fwdY * rightX;
-
-   //Normalização dos vetores, para que seus módulos tenhar valor 1
-   float lenFwd = sqrt(fwdX*fwdX + fwdY*fwdY + fwdZ*fwdZ);
-   fwdX == fwdX/lenFwd;
-   fwdY == fwdY/lenFwd;
-   fwdZ == fwdZ/lenFwd;
-    
-   float lenRight = sqrt(rightX*rightX + rightY*rightY + rightZ*rightZ);
-   rightX == rightX/lenRight;
-   rightY == rightY/lenRight;
-   rightZ == rightZ/lenRight;
-   
-   float lenUp = sqrt(upX*upX + upY*upY + upZ*upZ);
-   upX == upX/lenUp;
-   upY == upY/lenUp;
-   upZ == upZ/lenUp;
-
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   glRotatef(cameraPitch, 1.0, 0.0, 0.0);
-   glRotatef(cameraYaw, 0.0, 1.0, 0.0);
-   glTranslatef(cameraX, cameraY, cameraZ);
-
-   glutPostRedisplay();
 
 }
 
@@ -430,6 +379,11 @@ void display(void){
    // Limpa o buffer de cores e profundidade
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+   glLoadIdentity();
+   glTranslatef(cameraPosX, 0.0, zoom);
+   glRotatef(anguloX, 1.0f, 0.0f, 0.0f);
+   glRotatef(anguloY, 0.0f, 1.0f, 0.0f);
+
    //Define a posição de onde a luz é emitida
    glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
 
@@ -557,83 +511,92 @@ void display(void){
 }
 
 void reshape(int w, int h){
+   // Prevenir uma divisão por zero
+   if (h == 0) h = 1;
+   
    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+   
+   // Mudar para a matriz de projeção
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-   gluPerspective(60.0, (GLfloat)w / (GLfloat)h, 0.1, 1000.0);
-
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-    
-   // Aplicar rotações primeiro (yaw em torno do eixo Y, pitch em torno do eixo X)
-   glRotatef(cameraPitch, 1.0f, 0.0f, 0.0f);
-   glRotatef(cameraYaw, 0.0f, 1.0f, 0.0f);
    
-   // Depois aplicar translação
-   glTranslatef(cameraX, cameraY, cameraZ);
+   // Configurar a perspectiva
+   gluPerspective(60.0, (GLfloat)w / (GLfloat)h, 0.1, 1000.0);
+   
+   // Voltar para a matriz de Modelview para as operações de desenho
+   glMatrixMode(GL_MODELVIEW);
 }
 
 void keyboard(unsigned char key, int x, int y){
    switch (key) {
-      case 'w': //Camera se move para frente
-         cameraX += fwdX * cameraMove;
-         cameraY += fwdY * cameraMove;
-         cameraZ += fwdZ * cameraMove;
-         cameraAdjust();
+      case 'w': 
+         zoom += 2.0f; // Aumentei o passo para navegar mais rápido
          break;
-      case 's': //Camera se move para trás
-         cameraX -= fwdX * cameraMove;
-         cameraY -= fwdY * cameraMove;
-         cameraZ -= fwdZ * cameraMove;
-         cameraAdjust();
+      case 's': 
+         zoom -= 2.0f;
          break;
-      case 'a': //Camera se move para a esquerda
-         cameraX -= rightX * cameraMove;
-         cameraY -= rightY * cameraMove;
-         cameraZ -= rightZ * cameraMove;
-         cameraAdjust();
+      case 'a':
+         cameraPosX += cameraMove; // Move a cena para a direita (câmera para a esquerda)
          break;
-      case 'd': //Camera se move para a direita
-         cameraX += rightX * cameraMove;
-         cameraY += rightY * cameraMove;
-         cameraZ += rightZ * cameraMove;
-         cameraAdjust();
+      case 'd':
+         cameraPosX -= cameraMove; // Move a cena para a esquerda (câmera para a direita)
          break;
-      case '4': //Camera gira para a esquerda
-         cameraYaw -= 5.0;
-         cameraAdjust();
+
+      case 'r': // Tecla de reset
+         anguloX = anguloY = 0;
+         cameraPosX = 0; // Reseta a posição também
+         zoom = -50.0f;
          break;
-      case '6': //Camera gira para a direita
-         cameraYaw += 5.0;
-         cameraAdjust();
-         break;
-      case '5': //Camera gira para baixo
-         cameraPitch += 5.0;
-         cameraAdjust();
-         break;
-      case '8': //Camera gira para cima
-         cameraPitch -= 5.0;
-         cameraAdjust();
-         break;
-      case 27:
+      case 27: // Tecla ESC para sair
          exit(0);
          break;
-      default:
-         break;
    }
+   glutPostRedisplay(); // Apenas redesenha a tela
 }
 
-int main(int argc, char** argv){
-   glutInit(&argc, argv);
-   glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB);
-   glutInitWindowSize (500, 500); 
-   glutInitWindowPosition (100, 100);
-   glutCreateWindow (argv[0]);
-   init ();
-   glutDisplayFunc(display); 
-   glutReshapeFunc(reshape);
-   glutKeyboardFunc(keyboard);
+void mouse(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            botaoEsquerdoAtivo = 1;
+            lastMouseX = x;
+            lastMouseY = y;
+        } else {
+            botaoEsquerdoAtivo = 0;
+        }
+    }
+
    
-   glutMainLoop();
-   return 0;
+    if (button == 3) zoom += 1.0f; 
+    if (button == 4) zoom -= 1.0f; 
+    glutPostRedisplay();
+}
+
+
+void motion(int x, int y) {
+    if (botaoEsquerdoAtivo) {
+        anguloX += (y - lastMouseY);
+        anguloY += (x - lastMouseX);
+        lastMouseX = x;
+        lastMouseY = y;
+        glutPostRedisplay();
+    }
+}  
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(800, 600);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("Sistema Solar - Controle de Janela, Teclado e Mouse");
+
+    init();
+
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
+    glutMouseFunc(mouse);
+    glutMotionFunc(motion);
+
+    glutMainLoop();
+    return 0;
 }
