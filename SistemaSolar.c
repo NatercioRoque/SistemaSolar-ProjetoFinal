@@ -462,6 +462,39 @@ void display(void){
       //Definição de cor sólida do corpo celeste, para caso não haja textura aplicada
       glColor3f(objects[i].r, objects[i].g, objects[i].b);
 
+      // Corrigir a orientação das texturas antes de aplicar a rotação do planeta
+      glRotatef(0.0f, 1.0f, 0.0f, 0.0f);
+      
+      // Adicionar inclinações axiais para planetas específicos
+      if (strcmp(objects[i].name, "Terra") == 0) {
+         // Terra tem uma inclinação de 23.5 graus
+         glRotatef(23.5f, 1.0f, 0.0f, 0.0f);
+      } else if (strcmp(objects[i].name, "Urano") == 0) {
+         // Urano tem uma inclinação extrema de cerca de 98 graus
+         glRotatef(98.0f, 1.0f, 0.0f, 0.0f);
+      } else if (strcmp(objects[i].name, "Saturno") == 0) {
+         // Saturno tem uma inclinação de 26.7 graus
+         glRotatef(26.7f, 1.0f, 0.0f, 0.0f);
+      } else if (strcmp(objects[i].name, "Netuno") == 0) {
+         // Netuno tem uma inclinação de cerca de 28 graus
+         glRotatef(28.0f, 1.0f, 0.0f, 0.0f);
+      } else if (strcmp(objects[i].name, "Marte") == 0) {
+         // Marte tem uma inclinação de 25 graus
+         glRotatef(25.0f, 1.0f, 0.0f, 0.0f);
+      } else if (strcmp(objects[i].name, "Jupiter") == 0) {
+         // Júpiter tem uma inclinação de 3.1 graus
+         glRotatef(3.1f, 1.0f, 0.0f, 0.0f);
+      } else if (strcmp(objects[i].name, "Venus") == 0) {
+         // Vênus tem uma rotação retrógrada com inclinação de 177 graus
+         glRotatef(177.0f, 1.0f, 0.0f, 0.0f);
+      } else if (strcmp(objects[i].name, "Mercurio") == 0) {
+         // Mercúrio tem uma pequena inclinação de 0.034 graus
+         glRotatef(0.034f, 1.0f, 0.0f, 0.0f);
+      }
+      
+      // Rotação do objeto em torno do próprio eixo
+      glRotatef(objects[i].rotationAngle, 0.0f, 0.0f, 1.0f);
+
       // Criar uma esfera para o objeto
       GLUquadric* quadric = gluNewQuadric();
       gluQuadricTexture(quadric, GL_TRUE);   //Mapeia e desenha a textura
@@ -471,6 +504,47 @@ void display(void){
       gluSphere(quadric, objects[i].radius, 32, 32);
       gluDeleteQuadric(quadric);
 
+      // Adicionar anéis para Saturno
+      if (strcmp(objects[i].name, "Saturno") == 0) {
+         // Desfazer a rotação do planeta para os anéis
+         glRotatef(-objects[i].rotationAngle, 0.0f, 0.0f, 1.0f);
+       
+         // Rotacionar os anéis apropriadamente
+         glRotatef(75.0f, 1.0f, 0.0f, 0.0f);
+         
+         // Criar um novo quadric para os anéis
+         GLUquadric* ringQuadric = gluNewQuadric();
+         gluQuadricTexture(ringQuadric, GL_TRUE);
+         gluQuadricNormals(ringQuadric, GLU_SMOOTH);
+         
+         // Desabilitar iluminação para os anéis
+         glDisable(GL_LIGHTING);
+         
+         // Definir cor dos anéis (tom amarelado)
+         glColor3f(0.9f, 0.8f, 1.0f);
+         
+         // Desenhar três anéis com diferentes raios
+         float innerRadius = objects[i].radius * 1.2f;
+         float outerRadius = objects[i].radius * 2.0f;
+         float ringThickness = 0.05f;
+         
+         // Anel médio
+         gluDisk(ringQuadric, innerRadius + ringThickness * 2, 
+                  innerRadius + ringThickness * 3, 32, 1);
+         
+         // 5 anéis entre o médio e o externo
+         float spacing = (outerRadius - (innerRadius + ringThickness * 3)) / 6.0f;
+         for(int j = 0; j < 5; j++) {
+               float currentRadius = innerRadius + ringThickness * 3 + spacing * (j + 1);
+               gluDisk(ringQuadric, currentRadius, currentRadius + ringThickness, 32, 1);
+         }
+         
+         // Anel externo
+         gluDisk(ringQuadric, outerRadius - ringThickness, 
+                  outerRadius, 32, 1);
+         
+         gluDeleteQuadric(ringQuadric);
+      }
       glPopMatrix();
    }
 
