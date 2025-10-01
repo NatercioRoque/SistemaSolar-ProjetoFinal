@@ -92,6 +92,17 @@ float orbitalSpeeds[] = {
     0.4f    // Netuno (mais lento)
 };
 
+GLfloat light0_ambient[] = { 0.2 , 0.2 , 0.2 , 1.0 };
+GLfloat light0_diffuse[] = { 1.0 , 1.0 , 1.0 , 1.0 };
+GLfloat light0_specular[] = { 1.0 , 1.0 , 1.0 , 1.0 };
+GLfloat light0_position[] = { 0.0 , 0.0 , 0.0 , 1.0 };
+//GLfloat spot_direction[] = { -1.0 , -1.0 , 0.0 };
+
+GLfloat materialAmbient[]  = { 0.2, 0.2, 0.2, 1.0 };
+GLfloat materialDiffuse[]  = { 0.7, 0.7, 0.7, 1.0 }; 
+GLfloat materialSpecular[] = { 0.0, 0.0, 0.0, 1.0 }; 
+GLfloat materialShininess[] = { 1.0 }; 
+
 // Protótipos de funções
 void updatePhysics();
 void addCelestialObject(float posX, float posY, float posZ, 
@@ -161,6 +172,55 @@ void loadTexture ( const char * filename , GLuint * textureID) {
 
 
 
+//Função para definir as propriedades luminosas dos objetos
+void lightConfig(){
+
+   //Liga iluminação
+   glEnable(GL_LIGHTING);
+   glEnable(GL_LIGHT0);
+
+   //Define as propriedades de reflexão e posição
+   glLightfv ( GL_LIGHT0 , GL_AMBIENT , light0_ambient );
+   glLightfv ( GL_LIGHT0 , GL_DIFFUSE , light0_diffuse );
+   glLightfv ( GL_LIGHT0 , GL_SPECULAR , light0_specular );
+   glLightfv ( GL_LIGHT0 , GL_POSITION , light0_position );
+
+   //Define as propriedades luminosas do material
+   glMaterialfv(GL_FRONT, GL_AMBIENT, materialAmbient);
+   glMaterialfv(GL_FRONT, GL_DIFFUSE, materialDiffuse);
+   glMaterialfv(GL_FRONT, GL_SPECULAR, materialSpecular);
+   glMaterialfv(GL_FRONT, GL_SHININESS, materialShininess);
+
+   //Mescla as propriedades de luz com a coloração do material
+   glEnable(GL_COLOR_MATERIAL);
+   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
+
+}
+
+void updatePhysics() {
+    // Atualizar a posição de cada planeta (exceto o Sol)
+    for (int i = 1; i < objectCount; i++) {
+        // Incrementar o ângulo de rotação específico deste planeta
+        rotationAngles[i] += orbitalSpeeds[i] * timeStep * 0.2f;
+        if (rotationAngles[i] > 360.0f) {
+            rotationAngles[i] -= 360.0f;
+        }
+        
+        // Atualizar a posição do planeta para orbitar ao redor do Sol
+        objects[i].posX = orbitalRadii[i] * cos(rotationAngles[i] * M_PI / 180.0f);
+        objects[i].posZ = orbitalRadii[i] * sin(rotationAngles[i] * M_PI / 180.0f);
+        // Manter os planetas no plano XZ
+        objects[i].posY = 0.0f;
+        
+        // Também atualizar a rotação do próprio planeta
+        objects[i].rotationAngle += objects[i].rotationSpeed * timeStep;
+        if (objects[i].rotationAngle > 360.0f) {
+            objects[i].rotationAngle -= 360.0f;
+        }
+    }
+}
+
 void init(void) 
 {
    glClearColor (0.0, 0.0, 0.0, 0.0);
@@ -168,6 +228,8 @@ void init(void)
    glEnable(GL_DEPTH_TEST);
    
    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+   lightConfig();
 
     stbi_set_flip_vertically_on_load(true);
 
@@ -316,9 +378,18 @@ void display(void){
 
    // Limpa o buffer de cores e profundidade
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   
+
    // Desenha os objetos celestes
    for (int i = 0; i < objectCount; i++) {
+      
+      if(i==0){
+         GLfloat emission[] = {1.0, 1.0, 0.1, 1.0};
+         glMaterialfv(GL_FRONT, GL_EMISSION, emission);
+      }else if(i==1){
+         GLfloat noEmission[] = {0.0, 0.0, 0.0, 1.0};
+         glMaterialfv(GL_FRONT, GL_EMISSION, noEmission);
+      }
+      
       glPushMatrix();
 
       // Posiciona o objeto
