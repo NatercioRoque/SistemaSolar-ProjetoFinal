@@ -39,7 +39,7 @@ int windowHeight = 600;
 float cameraX = 0.0f;
 float cameraY = 0.0f;
 float cameraZ = 50.0f;
-float cameraMove = 0.5;
+float cameraMove = 1.5;
 
 // Variáveis de rotação da câmera
 float cameraYaw = 180.0f;   // Rotação em torno do eixo Y (esquerda-direita)
@@ -290,7 +290,7 @@ void init(void)
    loadTexture("Texturas/earth.jpg", &earthTexName);
    loadTexture("Texturas/mars.jpg", &marsTexName);
    loadTexture("Texturas/jupiter.jpg", &jupiterTexName);
-   loadTexture("Texturas/satrun.jpg", &saturnTexName);
+   loadTexture("Texturas/saturn.jpg", &saturnTexName);
    loadTexture("Texturas/uranus.jpg", &uranusTexName);
    loadTexture("Texturas/neptune.jpg", &neptuneTexName);
 
@@ -435,7 +435,9 @@ void display(void){
 
    // Desenha os objetos celestes
    for (int i = 0; i < objectCount; i++) {
+      glPushMatrix();
       
+      //Habilita emissão de luz para o Sol, e desabilita para os outros corpos
       if(i==0){
          GLfloat emission[] = {1.0, 1.0, 0.1, 1.0};
          glMaterialfv(GL_FRONT, GL_EMISSION, emission);
@@ -444,7 +446,6 @@ void display(void){
          glMaterialfv(GL_FRONT, GL_EMISSION, noEmission);
       }
       
-      glPushMatrix();
 
       // Posiciona o objeto
       glTranslatef(objects[i].posX, objects[i].posY, objects[i].posZ);
@@ -510,7 +511,7 @@ void display(void){
          glRotatef(-objects[i].rotationAngle, 0.0f, 0.0f, 1.0f);
        
          // Rotacionar os anéis apropriadamente
-         glRotatef(75.0f, 1.0f, 0.0f, 0.0f);
+         glRotatef(-15.0f, 1.0f, 0.0f, 0.0f);
          
          // Criar um novo quadric para os anéis
          GLUquadric* ringQuadric = gluNewQuadric();
@@ -544,6 +545,7 @@ void display(void){
                   outerRadius, 32, 1);
          
          gluDeleteQuadric(ringQuadric);
+         glEnable(GL_LIGHTING);
       }
       glPopMatrix();
    }
